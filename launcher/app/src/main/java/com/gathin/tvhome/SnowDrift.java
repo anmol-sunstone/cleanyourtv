@@ -56,6 +56,16 @@ final class SnowDrift {
     private float speed = SPEED;
     /** Walls at both ends: nothing slumps off them and the snow lies right up to them. */
     private boolean walled;
+    /**
+     * The snow is cleared by something flying low over it, not by a blade: see {@link #flyby}.
+     */
+    private boolean flyby;
+    /** How long a flyby takes from one end of its path to the other, seconds: slow enough to be seen. */
+    static final float FLYBY_SECONDS = 6f;
+    /** The share of the snow above {@link #RESIDUE} that a flyby's wake carries away. */
+    static final float FLYBY_TAKES = 0.75f;
+    /** How high over the ledge the flyer skims, dp. */
+    static final float FLYBY_HEIGHT = 42f;
 
     private boolean ploughing;
     private int dir = 1;
@@ -95,6 +105,20 @@ final class SnowDrift {
 
     float speed() {
         return speed;
+    }
+
+    /**
+     * Whether a flyer clears this ledge instead of the plough. It never touches the snow: the air it drags along
+     * lifts about {@link #FLYBY_TAKES} of what lies under its path into its wake, a little more or less from one
+     * place to the next, and the rest stays where it was, in ripples. It crosses in {@link #FLYBY_SECONDS}
+     * whatever the ledge's length, and its wake shakes the tree's snow off.
+     */
+    void flyby(boolean on) {
+        flyby = on;
+    }
+
+    boolean flyby() {
+        return flyby;
     }
 
     void resize(float widthDp) {
@@ -228,7 +252,7 @@ final class SnowDrift {
     private void settle() {
         float step = REPOSE * BIN;
         // the pair of columns the blade stands between, or none
-        int wall = !ploughing ? -2 : dir > 0 ? (int) Math.floor(blade / BIN - 0.5f) : (int) Math.ceil(blade / BIN - 0.5f) - 1;
+        int wall = !ploughing || flyby ? -2 : dir > 0 ? (int) Math.floor(blade / BIN - 0.5f) : (int) Math.ceil(blade / BIN - 0.5f) - 1;
         for (int pass = 0; pass < 48; pass++) {
             // one sweep each way, so a slump runs to either end in a single pass
             boolean moved = false;
@@ -311,6 +335,7 @@ final class SnowDrift {
         blade = from;
         end = to;
         heap = 0f;
+        if (flyby) speed = Math.abs(to - from) / FLYBY_SECONDS;
     }
 
     /**
@@ -329,12 +354,24 @@ final class SnowDrift {
         int last = Math.min(n - 1, (int) Math.floor(hi / BIN - 0.5f));
         for (int i = first; i <= last; i++) {
             float take = h[i] - RESIDUE;
-            if (take > 0f) {
-                h[i] = RESIDUE;
-                heap += take * BIN;
+            if (take <= 0f) continue;
+            if (flyby) {
+                // the wake's pull comes and goes along the path, so what is left lies in ripples
+                take *= FLYBY_TAKES + 0.13f * (float) Math.sin(i * BIN / 9.0) + 0.07f * (float) Math.sin(i * BIN / 3.7 + 1.0);
             }
+            h[i] -= take;
+            heap += take * BIN;
         }
-        if (treeX >= 0f && (from - treeX) * (blade - treeX) <= 0f && from != blade) {
+        if (flyby && treeX >= 0f && (from - treeX) * (blade - treeX) <= 0f && from != blade) {
+            // passing the tree: its wake shakes the branches and their snow slides off
+            if (treeLoad > TREE_KEEPS) {
+                float fell = (treeLoad - TREE_KEEPS) * TREE_HOLDS;
+                treeLoad = TREE_KEEPS;
+                shed = true;
+                deposit(treeX - 12f, fell / 2f);
+                deposit(treeX + 12f, fell / 2f);
+            }
+        } else if (treeX >= 0f && (from - treeX) * (blade - treeX) <= 0f && from != blade) {
             // passing the tree: some of the snow the blade is throwing lands on its branches
             float dusting = Math.min(heap, TREE_DUSTING * TREE_HOLDS);
             heap -= dusting;

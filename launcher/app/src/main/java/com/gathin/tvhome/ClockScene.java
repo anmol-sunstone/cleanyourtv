@@ -81,7 +81,7 @@ final class ClockScene {
     private android.widget.TextView greeting;
     /** How much larger than on Home's dock the scene is drawn, and how many flakes fall. */
     private static final float SCENE_SCALE = 1.8f;
-    private static final int FLAKES = 70;
+    private static final int FLAKES = 110;
 
     private final Runnable tick = new Runnable() {
         @Override
@@ -147,7 +147,7 @@ final class ClockScene {
                 && cfg.festival.active(NewYear.today()) && ambient.getParent() instanceof android.view.ViewGroup) {
             android.view.ViewGroup frame = (android.view.ViewGroup) ambient.getParent();
             snow = new SnowfallView(ctx);
-            snow.ground(SCENE_SCALE);
+            snow.ground(SCENE_SCALE, cfg.festival.broom);
             festival = cfg.festival;
             if (content instanceof android.widget.LinearLayout) {
                 greeting = new android.widget.TextView(ctx);

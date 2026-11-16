@@ -40,12 +40,28 @@ final class Festival {
     final String greeting;
     /** Focus glow colour as 0xAARRGGBB, or 0 for {@link #DEFAULT_ACCENT}. */
     final int accent;
+    /**
+     * The Christmas skin's snow is cleared by a wizard flying past on a broomstick instead of by the plough
+     * (a theme's {@code snow_clearer} set to {@code broom}).
+     */
+    final boolean broom;
 
     private Festival(String name, LocalDate until, String greeting, int accent) {
+        this(name, until, greeting, accent, false);
+    }
+
+    private Festival(String name, LocalDate until, String greeting, int accent, boolean broom) {
         this.name = name;
         this.until = until;
         this.greeting = greeting;
         this.accent = accent;
+        this.broom = broom;
+    }
+
+    /** This skin with its snow cleared the way a theme's {@code snow_clearer} names: {@code broom}, or the plough. */
+    Festival clearedBy(String clearer) {
+        boolean flies = clearer != null && "broom".equals(clearer.trim().toLowerCase(Locale.ROOT));
+        return flies == broom || name.isEmpty() ? this : new Festival(name, until, greeting, accent, flies);
     }
 
     /**

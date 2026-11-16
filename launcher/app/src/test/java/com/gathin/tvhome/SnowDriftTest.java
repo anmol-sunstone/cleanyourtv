@@ -184,9 +184,9 @@ public class SnowDriftTest {
         assertEquals(mean, d.mean(), mean * 0.1f);
     }
 
-    /** The screensaver's ground: 960 dp of screen at 1.8 times the dock's scale, with its 70 flakes. */
+    /** The screensaver's ground: 960 dp of screen at 1.8 times the dock's scale, with its 110 flakes. */
     @Test
-    public void aWalledLedgeLiesLevelToItsEndsAndFillsAtTheDocksPace() {
+    public void aWalledLedgeLiesLevelToItsEndsAndFillsFasterUnderTheHeavierSnow() {
         SnowDrift d = new SnowDrift();
         d.walled(60f);
         d.resize(960f / 1.8f);
@@ -194,14 +194,14 @@ public class SnowDriftTest {
         Random rnd = new Random(4);
         float seconds = 0f;
         while (!d.due() && seconds < 3600f) {
-            // 70 flakes, each about 17 s from top to bottom, all of them landing
-            seconds += 17f / 70f;
+            // 110 flakes, each about 17 s from top to bottom, all of them landing
+            seconds += 17f / 110f;
             float size = 1.3f + (float) Math.pow(rnd.nextFloat() * rnd.nextFloat(), 1.5) * 4.8f;
             float x = rnd.nextFloat() * d.width();
             if (d.treeTop(x) > 0f) d.landOnTree(size / 1.8f);
             else d.land(x, size / 1.8f);
         }
-        assertTrue("called after " + seconds + " s", seconds > 200f && seconds < 330f);
+        assertTrue("called after " + seconds + " s", seconds > 100f && seconds < 190f);
         float lying = d.lying();
         d.startPlough(-12f, d.width() + 92f);
         float crossing = 0f;
@@ -211,5 +211,35 @@ public class SnowDriftTest {
         }
         assertTrue("crossed in " + crossing + " s", crossing > 9f && crossing < 12f);
         assertTrue(d.lying() < lying * 0.2f);
+    }
+
+    @Test
+    public void aFlybyTakesAboutThreeQuartersOfTheSnowInThreeSecondsAndLeavesRipples() {
+        SnowDrift d = ledge();
+        d.flyby(true);
+        Random rnd = new Random(6);
+        while (!d.due()) d.land(rnd.nextFloat() * d.width(), 2.4f);
+        for (int i = 0; i < 20; i++) d.landOnTree(2f);
+        float above = d.lying() - SnowDrift.RESIDUE * d.width();
+        d.startPlough(-100f, d.width() + 100f);
+        float thrown = 0f, seconds = 0f;
+        while (d.ploughing()) {
+            thrown += d.advance(0.033f);
+            seconds += 0.033f;
+        }
+        assertEquals(SnowDrift.FLYBY_SECONDS, seconds, 0.1f);
+        assertEquals(SnowDrift.TREE_KEEPS, d.treeLoad(), 0.001f);
+        assertTrue(d.takeShed());
+        float left = d.lying() - SnowDrift.RESIDUE * d.width();
+        // the tree's snow came down onto the ledge after the wake had passed, so a little more than a quarter is left
+        assertTrue("left " + left / above, left / above > 0.2f && left / above < 0.36f);
+        assertTrue(thrown > above * 0.6f);
+        float low = Float.MAX_VALUE, high = 0f;
+        for (int i = 20; i < d.bins() - 40; i++) {
+            low = Math.min(low, d.column(i));
+            high = Math.max(high, d.column(i));
+        }
+        assertTrue("ripples from " + low + " to " + high, high - low > 0.5f);
+        assertFalse(d.due());
     }
 }

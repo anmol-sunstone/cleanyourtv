@@ -715,7 +715,8 @@ final class Config {
         // A festive skin comes only from a theme; config.xml has no festival. seasonal_skin names one the same way
         // but launchers before it ignore the key, so a theme can carry it without older ones showing the diya skin.
         Festival festival = json == null ? Festival.NONE : Festival.parse(festivalName(json),
-                string(json, "festival_until", ""), string(json, "greeting", ""), string(json, "accent_color", ""));
+                string(json, "festival_until", ""), string(json, "greeting", ""), string(json, "accent_color", ""))
+                .clearedBy(string(json, "snow_clearer", ""));
 
         return new Config(dock, fillDock, hidden, libraryApps, libraryExcludedApps, liveTv, liveTvAction, liveTvInputId, packageMap(launchActions), packageMap(appLabels),
                 packageMap(appBanners), panelService, panelAction, panelExtra, coocaaSources, inputAction, inputSources, inputUriScheme, Math.max(1, columns),

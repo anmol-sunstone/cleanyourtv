@@ -22,7 +22,9 @@ import java.util.Random;
  * drift is deep enough a little red plough drives along the dock, alternately from the left and from the right.
  * Its blade scrapes the drift, the snow it gathers rides in front of it and is thrown off in arcs: some lands
  * further along and is ploughed again, some falls past the dock, and a few clumps fly at the viewer, hit the
- * inside of the screen and slide down it while they melt.
+ * inside of the screen and slide down it while they melt. A drift set to {@link SnowDrift#flyby} is cleared by a
+ * wizard on a broomstick instead: he skims over it in six seconds, his wake lifts most of the snow as powder
+ * that thins away, and at the New Year he trails sparks and crosses the finale's fireworks.
  *
  * <p>On the clock screensaver ({@link #ground}) there is no dock: the view keeps a drift of its own along the
  * bottom of the screen, from edge to edge, and draws it and the tree itself, with the whole scene larger than on
@@ -44,8 +46,12 @@ public final class SnowfallView extends View {
     /** The plough from the back of its hopper to the front of its blade, dp. */
     private static final float TRUCK = 66f * SCALE;
 
-    private static final int SPRAY = 120;
-    private static final byte FREE = 0, FALLS = 1, MAY_LAND = 2, AT_GLASS = 3, FADING = 4;
+    private static final int SPRAY = 200;
+    private static final byte FREE = 0, FALLS = 1, MAY_LAND = 2, AT_GLASS = 3, FADING = 4, POWDER = 5;
+    /** How long a puff of the powder a flyby raises hangs in the air, seconds. */
+    private static final float POWDER_LIFE = 2.6f;
+    /** How much larger than his drawing the flyer is shown: less on the screensaver, whose whole scene is larger. */
+    private float flyer = 2f;
     private static final int SPLATS = 8;
     private static final float SPLAT_LIFE = 5.2f;
 
@@ -92,6 +98,10 @@ public final class SnowfallView extends View {
     private final int[] bSeed = new int[SPLATS];
 
     private final Path blade = new Path(), beam = new Path(), heap = new Path();
+    private final Path cape = new Path(), hair = new Path(), bristles = new Path(), torso = new Path();
+    /** The flyer's extra pass through the finale's fireworks: 0 to 1 across the screen, negative when there is none. */
+    private float skyPass = -1f;
+    private int skyDir = 1, skyPasses;
 
     /** The turn of the year ({@link NewYear}): fireworks, the last ten seconds counted down, and the finale. */
     private static final String[] COUNT = {"", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
@@ -134,6 +144,36 @@ public final class SnowfallView extends View {
         beam.lineTo(48f, -25f);
         beam.lineTo(48f, 0f);
         beam.close();
+        // The flyer is drawn in dp too, facing +x, with the middle of his broomstick at the origin.
+        hair.moveTo(4.5f, -29f);
+        hair.lineTo(2.6f, -34f);
+        hair.lineTo(1.2f, -38f);
+        hair.lineTo(4.6f, -37f);
+        hair.lineTo(5.2f, -41.2f);
+        hair.lineTo(8.4f, -38.6f);
+        hair.lineTo(10.4f, -42f);
+        hair.lineTo(12.6f, -38.8f);
+        hair.lineTo(15.6f, -41f);
+        hair.lineTo(16.2f, -37.6f);
+        hair.lineTo(19f, -37.2f);
+        hair.lineTo(18.2f, -34.2f);
+        hair.lineTo(15.4f, -36f);
+        hair.lineTo(12.2f, -34.4f);
+        hair.lineTo(9.6f, -36f);
+        hair.lineTo(7f, -32.6f);
+        hair.close();
+        // a racing broom's tail: twigs bound tight and swept back to a point
+        bristles.moveTo(-33f, 0.6f);
+        bristles.quadTo(-44f, -6.5f, -54f, -3.5f);
+        bristles.lineTo(-69f, 2.2f);
+        bristles.lineTo(-54f, 7.6f);
+        bristles.quadTo(-44f, 9.5f, -33f, 4.4f);
+        bristles.close();
+        torso.moveTo(-9f, 1f);
+        torso.lineTo(1f, -23.5f);
+        torso.lineTo(10.5f, -21f);
+        torso.lineTo(3.5f, 2f);
+        torso.close();
     }
 
     /**
@@ -147,14 +187,16 @@ public final class SnowfallView extends View {
 
     /**
      * The screensaver's scene. The snow collects along the bottom of this view, from edge to edge, with the tree
-     * near its right end, and the view draws both itself. Everything in the scene is {@code scale} times its size
+     * near its right end, and the view draws both itself. With {@code broom} a flyer clears it, not the plough. Everything in the scene is {@code scale} times its size
      * on Home; the plough takes about ten seconds to cross. Call before {@link #fall}.
      */
-    void ground(float scale) {
+    void ground(float scale, boolean broom) {
         unit = density * scale;
         ground = true;
         drift = new SnowDrift();
         drift.walled(60f);
+        drift.flyby(broom);
+        flyer = 1.5f;
         tree = new ChristmasTree();
     }
 
@@ -172,8 +214,8 @@ public final class SnowfallView extends View {
             count = n;
             for (int i = 0; i < n; i++) {
                 x0[i] = rnd.nextFloat();                          // fraction of the width
-                // dp radius; mostly small, a few big. The screensaver's few big ones are bigger still, but its
-                // flakes carry only a little more snow between them, so the bank fills at the dock's pace.
+                // dp radius; mostly small, a few big. The screensaver's snowfall is heavier: more than twice the
+                // flakes and a few bigger ones, so its bank fills in about two and a half minutes.
                 size[i] = ground ? 1.3f + (float) Math.pow(rnd.nextFloat() * rnd.nextFloat(), 1.5) * 4.8f
                         : 1.3f + rnd.nextFloat() * rnd.nextFloat() * 3.6f;
                 period[i] = 20f - size[i] * 2.2f + rnd.nextFloat() * 6f;     // seconds top to bottom; big ones are nearer and faster
@@ -238,9 +280,9 @@ public final class SnowfallView extends View {
             float before = prevY[i];
             prevY[i] = y;
             if (landed[i] == cycle + 1) continue;
-            // on the screensaver a flake comes down somewhere else each time, or the big ones, which come round every
-            // few seconds, would each build a heap of their own on the ground
-            float across = ground ? (x0[i] + cycle * 0.6180339887f) % 1f : x0[i];
+            // a flake comes down somewhere else each time, or the big ones, which come round every few seconds,
+            // would each build a heap of their own
+            float across = (x0[i] + cycle * 0.6180339887f) % 1f;
             float x = across * w + sway[i] * density * (float) Math.sin(TAU * swayHz[i] * secs + phase[i]);
             if (ledge && !fresh && x > l - corner && x < r + corner) {
                 // over a rounded corner the flake still stops on the dock: it joins the snow at that end
@@ -272,7 +314,9 @@ public final class SnowfallView extends View {
         if (drift != null) {
             if (ledge && drift.due()) {
                 boolean right = passes++ % 2 == 0;
-                float lead = 12f * unit, truck = TRUCK * unit;
+                // the flyer comes in from well off the screen and leaves it the same way
+                float lead = drift.flyby() ? 70f * flyer * unit : 12f * unit;
+                float truck = drift.flyby() ? 70f * flyer * unit : TRUCK * unit;
                 drift.startPlough(((right ? -lead : w + lead) - l) / unit,
                         ((right ? w + truck : -truck) - l) / unit);
                 carry = 0f;
@@ -283,8 +327,15 @@ public final class SnowfallView extends View {
                 if (ledge) {
                     float road = top - SnowDrift.RESIDUE * unit;
                     float bladeX = l + drift.blade() * unit;
-                    throwSnow(thrown, bladeX, road, drift.direction());
-                    drawPlough(c, bladeX, road, drift.direction(), secs);
+                    if (drift.flyby()) {
+                        raisePowder(thrown, bladeX, road, drift.direction());
+                        float skim = road - (SnowDrift.FLYBY_HEIGHT + 2.5f * (float) Math.sin(secs * 5.2f)) * unit;
+                        drawFlyer(c, bladeX, skim, drift.direction(), secs, unit,
+                                NewYear.phase(NewYear.today()) != NewYear.CHRISTMAS);
+                    } else {
+                        throwSnow(thrown, bladeX, road, drift.direction());
+                        drawPlough(c, bladeX, road, drift.direction(), secs);
+                    }
                 }
             }
             if (drift.takeShed() && ledge) slideOffTree(l + drift.treeX() * unit, top);
@@ -326,6 +377,13 @@ public final class SnowfallView extends View {
             }
             if (into < 0f && finale && finaleOver != null) post(finaleOver);
             finale = into >= 0f;
+            if (!finale) skyPasses = 0;
+            // twice in the finale the flyer crosses high up, through the fireworks
+            if (finale && drift != null && drift.flyby() && skyPass < 0f
+                    && (skyPasses == 0 && into >= 6f || skyPasses == 1 && into >= 32f)) {
+                skyPass = 0f;
+                skyDir = skyPasses++ % 2 == 0 ? 1 : -1;
+            }
         }
         if (launchGap > 0f) {
             if (launchIn < 0f || launchIn > launchGap * 1.4f) launchIn = launchGap * rnd.nextFloat();
@@ -341,6 +399,14 @@ public final class SnowfallView extends View {
             }
         }
         if (fireworks != null) fireworks.step(c, dt, ledge ? l : 0f, ledge ? r : 0f, top);
+        if (skyPass >= 0f) {
+            skyPass += dt / SnowDrift.FLYBY_SECONDS;
+            float span = w + 140f * flyer * unit;
+            float x = (skyDir > 0 ? skyPass : 1f - skyPass) * span - 70f * flyer * unit;
+            float y = h * (0.34f - 0.1f * (float) Math.sin(Math.PI * skyPass));
+            drawFlyer(c, x, y, skyDir, skinSecond % 3600L + skyPass * 3f, unit, true);
+            if (skyPass >= 1f) skyPass = -1f;
+        }
         if (countdown > 0) {
             // each number lands a little too big and settles, then dims as the next one is due
             float f = Math.min(1f, (SystemClock.uptimeMillis() - countAt) / 1000f);
@@ -411,6 +477,158 @@ public final class SnowfallView extends View {
     }
 
     /**
+     * A flyby's wake: the snow it lifted this frame rises behind the flyer as puffs of powder that are dragged
+     * along after it, slow, hang and thin to nothing. A few clumps are flung at the glass.
+     */
+    private void raisePowder(float thrown, float flyerX, float ground, int dir) {
+        carry += thrown;
+        float puff = CLUMP * 1.6f;
+        int made = 0;
+        for (int i = 0; i < SPRAY && carry >= puff && made < 9; i++) {
+            if (sKind[i] != FREE) continue;
+            float area = puff * (0.6f + rnd.nextFloat());
+            carry -= area;
+            made++;
+            boolean glass = rnd.nextFloat() < 0.035f;
+            sKind[i] = glass ? AT_GLASS : POWDER;
+            sArea[i] = area;
+            sr[i] = (glass ? 1.2f : 0.9f) * (float) Math.sqrt(area / Math.PI) * unit;
+            // it leaves the ground a little behind him, where the air closes in again
+            sx[i] = flyerX - dir * (4f + rnd.nextFloat() * 50f) * unit;
+            sy[i] = ground - rnd.nextFloat() * 5f * unit;
+            svx[i] = dir * drift.speed() * (0.1f + 0.5f * rnd.nextFloat()) + (rnd.nextFloat() - 0.5f) * 70f;
+            svy[i] = -(glass ? 230f + rnd.nextFloat() * 170f : 50f + rnd.nextFloat() * rnd.nextFloat() * 260f);
+            sAge[i] = 0f;
+            sHit[i] = 0.35f + rnd.nextFloat() * 0.4f;
+        }
+        if (carry > puff * 14f) carry = puff * 14f;
+    }
+
+    /**
+     * The flyer: a young wizard leaning low over a racing broom, black robes and a red and gold scarf streaming
+     * behind him, round glasses, untidy black hair and a scar on his forehead, chasing a small winged golden
+     * ball. Drawn facing the way he flies with the middle of the broomstick at ({@code x}, {@code y}), px;
+     * {@code sparks} gives the broom a trail of gold sparks, for the New Year.
+     */
+    private void drawFlyer(Canvas c, float x, float y, int dir, float secs, float unit, boolean sparks) {
+        c.save();
+        c.translate(x, y);
+        c.scale(dir * unit * flyer, unit * flyer);
+        c.rotate(-4f + 2f * (float) Math.sin(secs * 2.6f));
+        float wave = (float) Math.sin(secs * 9f), wave2 = (float) Math.sin(secs * 9f + 1.4f);
+
+        if (sparks) {
+            for (int k = 0; k < 14; k++) {
+                float back = 62f + k * 6.5f + 5f * unit(k, (int) (secs * 15f));
+                float off = (unit(k + 31, (int) (secs * 15f)) - 0.5f) * (5f + k * 1.3f);
+                ink.setColor(k % 3 == 0 ? 0xFFFFF4D6 : 0xFFFFD75E);
+                ink.setAlpha(Math.round(235 * (1f - k / 14f)));
+                c.drawCircle(-back, 1.5f + off, 1.5f - k * 0.06f, ink);
+            }
+        }
+
+        // the cloak, blown back
+        cape.rewind();
+        cape.moveTo(3f, -23f);
+        cape.quadTo(-14f, -27f + 3f * wave, -34f, -20f + 4f * wave2);
+        cape.lineTo(-30f, -12f + 3f * wave);
+        cape.lineTo(-37f, -5f + 4f * wave2);
+        cape.quadTo(-18f, -2f + 2f * wave, -7f, 0f);
+        cape.close();
+        ink.setColor(0xFF15151B);
+        c.drawPath(cape, ink);
+
+        // the broom
+        ink.setColor(0xFFB98A3A);
+        c.drawPath(bristles, ink);
+        line.setColor(0xFF7E5A1F);
+        line.setStrokeWidth(0.8f);
+        c.drawLine(-36f, 1.4f, -62f, 0.6f, line);
+        c.drawLine(-36f, 3.4f, -62f, 3.6f, line);
+        // a dark polished handle, gold bands on the tail and a footrest under it
+        line.setColor(0xFF3B2414);
+        line.setStrokeWidth(2.5f);
+        c.drawLine(-36f, 2.4f, 32f, -3.2f, line);
+        ink.setColor(0xFFEEBA30);
+        c.drawRect(-37.5f, -0.4f, -34f, 5.4f, ink);
+        c.drawRect(-50.5f, -3.6f, -48.6f, 8.2f, ink);
+        line.setColor(0xFFEEBA30);
+        line.setStrokeWidth(1.1f);
+        c.drawLine(-14f, 1f, -9f, 12.6f, line);
+        c.drawLine(-12f, 12.8f, -3.5f, 13f, line);
+
+        // leg and shoe, behind the stick's near side
+        line.setColor(0xFF2B2B33);
+        line.setStrokeWidth(4.2f);
+        c.drawLine(-5f, 0f, 3f, 8.5f, line);
+        c.drawLine(3f, 8.5f, -6f, 11.5f, line);
+        ink.setColor(0xFF0E0E12);
+        c.drawCircle(-7.5f, 11.8f, 2.4f, ink);
+
+        ink.setColor(0xFF1E1E26);
+        c.drawPath(torso, ink);
+        // the house colours at the collar
+        ink.setColor(0xFFAE0001);
+        c.drawCircle(6.2f, -22.6f, 3.4f, ink);
+
+        // the scarf, in six stripes, streaming
+        for (int k = 0; k < 6; k++) {
+            float x0 = 4f - k * 5.6f, x1 = x0 - 5.8f;
+            float y0 = -24f + (k == 0 ? 0f : 3f * (float) Math.sin(secs * 9f + k * 0.9f)) - k * 0.5f;
+            float y1 = -24f + 3f * (float) Math.sin(secs * 9f + (k + 1) * 0.9f) - (k + 1) * 0.5f;
+            line.setColor(k % 2 == 0 ? 0xFFAE0001 : 0xFFEEBA30);
+            line.setStrokeWidth(3.6f);
+            c.drawLine(x0, y0, x1, y1, line);
+        }
+
+        // arm to the stick, and the hand
+        line.setColor(0xFF15151B);
+        line.setStrokeWidth(4f);
+        c.drawLine(6f, -19.5f, 13f, -9.5f, line);
+        c.drawLine(13f, -9.5f, 20.5f, -4f, line);
+        ink.setColor(0xFFF2C9A0);
+        c.drawCircle(21.5f, -3.6f, 2.2f, ink);
+
+        // head, hair, glasses, scar
+        ink.setColor(0xFFF2C9A0);
+        c.drawCircle(11f, -31f, 7.6f, ink);
+        ink.setColor(0xFF0E0E12);
+        c.drawPath(hair, ink);
+        line.setColor(0xFFB3261E);
+        line.setStrokeWidth(0.75f);
+        c.drawLine(13.2f, -36.6f, 12.2f, -35.2f, line);
+        c.drawLine(12.2f, -35.2f, 13.6f, -35f, line);
+        c.drawLine(13.6f, -35f, 12.8f, -33.6f, line);
+        ink.setColor(0x38FFFFFF);
+        c.drawCircle(10.6f, -30.4f, 2.7f, ink);
+        c.drawCircle(16.2f, -30.4f, 2.5f, ink);
+        line.setColor(0xFF15151B);
+        line.setStrokeWidth(0.85f);
+        line.setStyle(Paint.Style.STROKE);
+        c.drawCircle(10.6f, -30.4f, 2.7f, line);
+        c.drawCircle(16.2f, -30.4f, 2.5f, line);
+        c.drawLine(13.3f, -30.6f, 13.7f, -30.6f, line);
+        c.drawLine(7.9f, -30.8f, 4.4f, -31.6f, line);
+        ink.setColor(0xFF2E6B3A);
+        c.drawCircle(11f, -30.3f, 0.8f, ink);
+        c.drawCircle(16.4f, -30.3f, 0.8f, ink);
+        line.setColor(0xFF8A4B3A);
+        line.setStrokeWidth(0.7f);
+        c.drawLine(12.4f, -26.4f, 15.4f, -26.8f, line);
+
+        // the golden ball he is after, wings beating
+        float bx = 46f + 3f * (float) Math.sin(secs * 6.3f), by = -32f + 3.5f * (float) Math.cos(secs * 7.7f);
+        float beat = 3.2f * (float) Math.sin(secs * 46f);
+        line.setColor(0xD9FFFFFF);
+        line.setStrokeWidth(0.9f);
+        c.drawLine(bx, by, bx - 5.5f, by - 2f + beat, line);
+        c.drawLine(bx, by, bx + 5.5f, by - 2f + beat, line);
+        ink.setColor(0xFFEEBA30);
+        c.drawCircle(bx, by, 1.9f, ink);
+        c.restore();
+    }
+
+    /**
      * Flies the thrown clumps one step and draws them. A clump coming down on the ledge ahead of the blade may
      * settle there, to be ploughed again; the others drop past the dock and fade, and one aimed at the viewer
      * grows as it nears and becomes a splat.
@@ -427,8 +645,14 @@ public final class SnowfallView extends View {
             byte kind = sKind[i];
             if (kind == FREE) continue;
             sAge[i] += dt;
-            svy[i] += GRAVITY * dt;
-            svx[i] *= drag;
+            if (kind == POWDER) {
+                // powder is light: it falls slowly and the air stops it quickly
+                svy[i] = svy[i] * (1f - 1.6f * dt) + GRAVITY * 0.07f * dt;
+                svx[i] *= 1f - 1.5f * dt;
+            } else {
+                svy[i] += GRAVITY * dt;
+                svx[i] *= drag;
+            }
             sx[i] += svx[i] * dt * unit;
             sy[i] += svy[i] * dt * unit;
             float rad = sr[i];
@@ -441,6 +665,14 @@ public final class SnowfallView extends View {
                     continue;
                 }
                 rad *= 1f + 2f * near;
+            } else if (kind == POWDER) {
+                float t = sAge[i] / POWDER_LIFE;
+                if (t >= 1f) {
+                    sKind[i] = FREE;
+                    continue;
+                }
+                rad *= 1f + 1.1f * t;
+                alpha = Math.round(210 * (1f - t) * (1f - t));
             } else if (kind == FADING) {
                 alpha = Math.round(235 * (1f - sAge[i] / 0.45f));
                 if (alpha <= 0) {
