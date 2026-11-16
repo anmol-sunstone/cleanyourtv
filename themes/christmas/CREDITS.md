@@ -23,7 +23,21 @@ CC BY-SA pictures stay under CC BY-SA. Each picture's credit also shows under th
 - `07-snowy-street.jpg`: "Mannerheimintie on a snowy December evening.jpg" by JIP, CC BY-SA 4.0
   https://commons.wikimedia.org/wiki/File:Mannerheimintie_on_a_snowy_December_evening.jpg
 
+The four New Year pictures (`ny-*.jpg`, shown only from 1 January until the skin ends) are photos from Wikimedia
+Commons too, rebuilt by `prepare_newyear_wallpapers.py` with the same changes as the photos above:
+
+- `ny-01-melbourne.jpg`: "Melbourne New Year 2014 (11726618003).jpg" by Chris Phutully, CC BY 2.0
+  https://commons.wikimedia.org/wiki/File:Melbourne_New_Year_2014_(11726618003).jpg
+- `ny-02-marina-bay.jpg`: "Marina-Bay Singapore Firework-launching-CNY-2015-03.jpg" by CEphoto, Uwe Aranas,
+  CC BY-SA 3.0 (the fireworks that opened the Chinese New Year 2015)
+  https://commons.wikimedia.org/wiki/File:Marina-Bay_Singapore_Firework-launching-CNY-2015-03.jpg
+- `ny-03-dubai.jpg`: "Burj Al Arab Fireworks 2021 New Year.jpg" by Bengin Ahmad, CC BY 2.0
+  https://commons.wikimedia.org/wiki/File:Burj_Al_Arab_Fireworks_2021_New_Year.jpg
+- `ny-04-como.jpg`: "Capodanno 2020.jpg" by Achille Ballerini, CC BY-SA 4.0
+  https://commons.wikimedia.org/wiki/File:Capodanno_2020.jpg
+
 CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
+CC BY 2.0: https://creativecommons.org/licenses/by/2.0/
 CC BY 3.0: https://creativecommons.org/licenses/by/3.0/
 CC BY-SA 3.0: https://creativecommons.org/licenses/by-sa/3.0/
 CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/
