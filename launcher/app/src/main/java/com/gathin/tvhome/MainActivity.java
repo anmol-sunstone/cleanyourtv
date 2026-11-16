@@ -268,8 +268,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     /** Festive skin from the theme (see Festival); applied while it is active today. */
     private Festival festival = Festival.NONE;
     private boolean festive;
-    /** The network pill's festive light: the diya, or the jack-o'-lantern for Halloween. */
+    /** The network pill's festive light: the diya, the jack-o'-lantern for Halloween or the candle for Christmas. */
     private FestiveLamp lamp;
+    /** The Christmas skin's snowfall over Home, falling for as long as Home is on screen. */
+    private SnowfallView snow;
     private BellDrawable bell;
     private MarigoldDrawable marigold;
     private int greetingColor;
@@ -689,7 +691,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         });
         if (dockRow) grid.addItemDecoration(new DockDecoration(COLUMNS, density, cinematic, cfg.alwaysShowNames, cfg.dockOpacity, cfg.dockGlass, cfg.dockEvenPadding, cfg.dockBand,
-                singleRow, cfg.dockBandAll));
+                singleRow, cfg.dockBandAll).snow(festive && festival.isChristmas()));
         if (cfg.fadeRows) TopFade.attach(grid, 48 * density);
         // Reduced motion: the tiles are simply there, with no entrance (reloadApps skips it there too).
         if (animations && !reducedMotion) {
@@ -1141,6 +1143,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         sky.update();
         wallpaperPlayer.start();
         handler.postDelayed(minuteTick, MINUTE_MS);
+        if (festive && festival.isChristmas() && !reducedMotion) {
+            if (snow == null) {
+                snow = new SnowfallView(this);
+                root.addView(snow, new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            }
+            snow.fall(46);
+        }
         if (festive && lamp != null) {
             lamp.start();
             LocalDate today = LocalDate.now();
@@ -1325,6 +1335,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (gameDay != null) gameDay.stop();
         handler.removeCallbacks(turnTick);
         if (lamp != null) lamp.stop();
+        if (snow != null) snow.stop();
         cancelPendingFocusScroll();
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
         if (cardPrompt != null) cardPrompt.dismiss();
@@ -3077,7 +3088,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
      * Swaps the pill icons for the festival's: a bell for Inputs that swings when focused, a diya for the
      * network whose flame follows the connection, and a marigold for Settings that turns when focused. Halloween
      * has its own: a bat for Inputs that flaps, a jack-o'-lantern whose face glows while online, and a ghost for
-     * Settings that floats up.
+     * Settings that floats up. So has Christmas: a jingle bell that swings, an Advent candle whose flame follows the
+     * connection, and a snowflake that turns.
      */
     private void applyFestiveSkin(TextView inputs, TextView settings) {
         if (festival.isHalloween()) {
@@ -3093,6 +3105,21 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             setFestiveIcon(settings, ghost);
             addFocusAction(inputs, bat::nudge);
             addFocusAction(settings, ghost::nudge);
+            return;
+        }
+        if (festival.isChristmas()) {
+            ChristmasIconDrawable jingle = new ChristmasIconDrawable(density, ChristmasIconDrawable.BELL);
+            ChristmasIconDrawable flake = new ChristmasIconDrawable(density, ChristmasIconDrawable.SNOWFLAKE);
+            CandleDrawable candle = new CandleDrawable(density, Festival.candleLeft(LocalDate.now()));
+            jingle.setReducedMotion(reducedMotion);
+            flake.setReducedMotion(reducedMotion);
+            candle.setReducedMotion(reducedMotion);
+            lamp = candle;
+            setFestiveIcon(inputs, jingle);
+            setFestiveIcon(btnWifi, candle);
+            setFestiveIcon(settings, flake);
+            addFocusAction(inputs, jingle::nudge);
+            addFocusAction(settings, flake::nudge);
             return;
         }
         bell = new BellDrawable(density);
@@ -3133,6 +3160,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             bats.play(16, 2800, () -> root.removeView(bats));
             return;
         }
+        if (festival.isChristmas()) return;   // its snow falls all the time Home is showing (onResume)
         PetalShowerView shower = new PetalShowerView(this);
         root.addView(shower, new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));

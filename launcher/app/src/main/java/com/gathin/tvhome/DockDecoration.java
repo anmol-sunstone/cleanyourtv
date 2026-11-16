@@ -3,6 +3,7 @@ package com.gathin.tvhome;
 import android.graphics.Canvas;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
+import android.graphics.Path;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.Shader;
@@ -34,6 +35,12 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final boolean singleRow;
     /** dock_band_all: in a single row, the band runs behind every app instead of the dock apps only. */
     private final boolean bandAll;
+    /** Draw a line of settled snow on the band's top edge (the Christmas skin). */
+    private boolean snow;
+    private final Paint snowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Path snowPath = new Path();
+    /** The band the snow was shaped for; it is reshaped when the band moves. */
+    private final RectF snowFor = new RectF();
 
     /**
      * @param translucent the cinematic shelf's band: the artwork and the glow show through it.
@@ -59,6 +66,12 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         edge.setStyle(Paint.Style.STROKE);
         edge.setStrokeWidth(density);
         edge.setColor(lightGlass ? 0x38FFFFFF : translucent ? 0x26FFFFFF : 0x1FFFFFFF);
+    }
+
+    /** Settled snow along the band's top edge, for the Christmas skin. */
+    DockDecoration snow(boolean on) {
+        snow = on;
+        return this;
     }
 
     /** Concentric corners: the band's radius is the tiles' radius plus the band's padding around them. */
@@ -148,5 +161,47 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         }
         c.drawRoundRect(rect, radius, radius, band);
         c.drawRoundRect(rect, radius, radius, edge);
+        if (snow) drawSnow(c, radius);
+    }
+
+    /**
+     * Snow lying on the band's top edge between its rounded corners: flat along the edge underneath and piled in
+     * low, uneven drifts on top, thinning to nothing at both ends. The drifts come from the position along the
+     * band, so they stay put from one draw to the next.
+     */
+    private void drawSnow(Canvas c, float radius) {
+        if (!snowFor.equals(rect)) {
+            snowFor.set(rect);
+            float l = rect.left + radius * 0.7f, r = rect.right - radius * 0.7f;
+            float y = rect.top + 0.8f * density;      // just over the band's edge line
+            snowPath.rewind();
+            snowPath.moveTo(l, y);
+            float x = l;
+            int i = 0;
+            while (x < r - 1f) {
+                float span = (34f + 46f * unit(i * 2)) * density;
+                float next = Math.min(r, x + span);
+                if (r - next < 22f * density) next = r;
+                // lower drifts near the two ends, so the snow tapers into the corners
+                float edge = Math.min(1f, Math.min((x + next) / 2f - l, r - (x + next) / 2f) / (90f * density));
+                float height = (2.6f + 4.6f * unit(i * 2 + 1)) * density * (0.35f + 0.65f * edge);
+                float dip = next == r ? 0f : (0.9f + 1.3f * unit(i * 2 + 7)) * density;
+                snowPath.quadTo((x + next) / 2f, y - height * 2f + dip, next, y - dip);
+                x = next;
+                i++;
+            }
+            snowPath.close();
+        }
+        snowPaint.setColor(0xF4FFFFFF);
+        c.drawPath(snowPath, snowPaint);
+    }
+
+    /** A fixed pseudo-random value in 0..1 for the i-th mound. */
+    private static float unit(int i) {
+        int h = i * 0x9E3779B1 + 0x7F4A7C15;
+        h ^= h >>> 15;
+        h *= 0x2C1B3C6D;
+        h ^= h >>> 12;
+        return (h & 0xFFFF) / 65535f;
     }
 }

@@ -614,7 +614,7 @@ def colour_value(key, text):
     Config.color() is `Color.parseColor(((String) v).trim()) | 0xFF000000` inside a try whose catch keeps the
     built-in black, so `#12345` is dropped and the alpha of an `#AARRGGBB` is overwritten rather than shown.
     Festival.parseColor() is `if (!t.matches("#[0-9A-Fa-f]{6}")) return 0;`: accent_color reads six hex digits
-    and nothing else, and 0 means the skin's own accent (diya gold, pumpkin for halloween).
+    and nothing else, and 0 means the skin's own accent (diya gold, pumpkin for halloween, candlelight for christmas).
 
     A value with no '#' is handed back for Color.parseColor()'s own table of names (black, red, ...), which
     set does not carry: accent_color refuses it because Festival.parseColor() reads no name at all.

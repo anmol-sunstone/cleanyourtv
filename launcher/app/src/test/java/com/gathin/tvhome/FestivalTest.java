@@ -68,4 +68,31 @@ public class FestivalTest {
         assertFalse(Festival.parse("onam", "", "", "").isHalloween());
         assertFalse(Festival.NONE.isHalloween());
     }
+
+    @Test
+    public void christmasCountsTheSleepsThenGreetsTheNewYear() {
+        assertEquals(39, Festival.sleepsToChristmas(LocalDate.of(2026, 11, 16)));
+        assertEquals(1, Festival.sleepsToChristmas(LocalDate.of(2026, 12, 24)));
+        assertEquals(0, Festival.sleepsToChristmas(LocalDate.of(2026, 12, 25)));
+        assertEquals(0, Festival.sleepsToChristmas(LocalDate.of(2026, 12, 31)));
+        assertEquals(-1, Festival.sleepsToChristmas(LocalDate.of(2027, 1, 6)));
+        assertEquals(0, Festival.sleepsToChristmas(LocalDate.of(2026, 7, 1)));
+    }
+
+    @Test
+    public void theAdventCandleBurnsDownThroughDecember() {
+        assertEquals(1f, Festival.candleLeft(LocalDate.of(2026, 11, 16)), 0f);
+        assertEquals(1f, Festival.candleLeft(LocalDate.of(2026, 12, 1)), 0f);
+        assertEquals(0.5f, Festival.candleLeft(LocalDate.of(2026, 12, 13)), 0f);
+        assertEquals(0f, Festival.candleLeft(LocalDate.of(2026, 12, 25)), 0f);
+        assertEquals(0f, Festival.candleLeft(LocalDate.of(2027, 1, 3)), 0f);
+    }
+
+    @Test
+    public void christmasHasItsOwnSkinAndCandlelightAccent() {
+        Festival f = Festival.parse("Christmas", "2027-01-06", "", "");
+        assertTrue(f.isChristmas());
+        assertFalse(f.isHalloween());
+        assertEquals(Festival.CANDLELIGHT, f.accentColor());
+    }
 }

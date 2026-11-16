@@ -3,8 +3,8 @@ package com.gathin.tvhome;
 import android.graphics.drawable.Animatable;
 
 /**
- * The network pill's icon while a festive skin is on: a light that follows the connection. The diya's flame and
- * the jack-o'-lantern's candle both take the same calls from the Wi-Fi label code.
+ * The network pill's icon while a festive skin is on: a light that follows the connection. The diya's flame,
+ * the jack-o'-lantern's candle and the Christmas candle all take the same calls from the Wi-Fi label code.
  */
 interface FestiveLamp extends Animatable {
 

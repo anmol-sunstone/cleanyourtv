@@ -10,7 +10,7 @@ import java.util.Locale;
  * A festive skin set by a theme's config.json: {@code festival} (or {@code seasonal_skin}), {@code festival_until},
  * {@code greeting} and {@code accent_color}. While it is active the pills get festive icons (a diya for the
  * network, a bell for Inputs, a marigold for Settings; for {@code halloween} a jack-o'-lantern, a bat and a
- * ghost), the greeting is replaced and the focus glow takes the accent colour. It switches itself off after
+ * ghost; for {@code christmas} an Advent candle, a jingle bell and a snowflake), the greeting is replaced and the focus glow takes the accent colour. It switches itself off after
  * {@code festival_until}, so nobody has to remember to undo it.
  */
 final class Festival {
@@ -25,6 +25,12 @@ final class Festival {
 
     /** Pumpkin orange, Halloween's accent when the theme names no colour. */
     static final int PUMPKIN = 0xFFFF7A1A;
+
+    /** The festival with a candle, a jingle bell and a snowflake, snowfall on the first Home and a countdown. */
+    static final String CHRISTMAS = "christmas";
+
+    /** Candlelight, Christmas's accent when the theme names no colour. */
+    static final int CANDLELIGHT = 0xFFFFC46B;
 
     /** Lower-case festival name, or "" for none. */
     final String name;
@@ -76,6 +82,8 @@ final class Festival {
                 return res.getString(R.string.festival_diwali_greeting);
             case HALLOWEEN:
                 return res.getString(R.string.festival_halloween_greeting);
+            case CHRISTMAS:
+                return christmasGreeting(res, LocalDate.now());
             default:
                 return "";
         }
@@ -83,7 +91,43 @@ final class Festival {
 
     int accentColor() {
         if (accent != 0) return accent;
-        return isHalloween() ? PUMPKIN : DEFAULT_ACCENT;
+        return isHalloween() ? PUMPKIN : isChristmas() ? CANDLELIGHT : DEFAULT_ACCENT;
+    }
+
+    /** Whether this is the Christmas skin: a candle, a jingle bell and a snowflake. */
+    boolean isChristmas() {
+        return CHRISTMAS.equals(name);
+    }
+
+    /**
+     * Nights left until 25 December, counted for the 60 days before it; 0 from Christmas Day to New Year's Eve
+     * and for the rest of the year, -1 in January (the new year's greeting).
+     */
+    static int sleepsToChristmas(LocalDate today) {
+        if (today.getMonthValue() == 1) return -1;
+        LocalDate day = LocalDate.of(today.getYear(), 12, 25);
+        if (today.isAfter(day)) return 0;
+        long left = day.toEpochDay() - today.toEpochDay();
+        return left <= 60 ? (int) left : 0;
+    }
+
+    /**
+     * How much of the Advent candle is left: 1 until 1 December, a little less each day, 0 from Christmas Day
+     * until the end of January.
+     */
+    static float candleLeft(LocalDate today) {
+        int month = today.getMonthValue();
+        if (month == 1) return 0f;
+        if (month != 12) return 1f;
+        return Math.max(0f, 1f - (today.getDayOfMonth() - 1) / 24f);
+    }
+
+    private static String christmasGreeting(Resources res, LocalDate today) {
+        int sleeps = sleepsToChristmas(today);
+        if (sleeps < 0) return res.getString(R.string.festival_new_year_greeting);
+        if (sleeps == 0) return res.getString(R.string.festival_christmas_greeting);
+        if (sleeps == 1) return res.getString(R.string.festival_christmas_one_sleep);
+        return res.getString(R.string.festival_christmas_sleeps, sleeps);
     }
 
     /** Whether this is the Halloween skin rather than the diya, bell and marigold. */
