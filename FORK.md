@@ -1,4 +1,4 @@
-# Cozy Christmas: a candle, a bell, snow, a plough and a tree
+# Cozy Christmas: a candle, a bell, snow, a tree, and a plough or a broom to clear it
 
 This branch (`christmas-skin`) is a fork of [CleanYourTV](https://github.com/Gathin23/cleanyourtv) that adds a
 Christmas skin to its launcher and a `christmas` theme that turns the skin on: seven Christmas pictures and
@@ -24,6 +24,25 @@ because this build is over its APK size limit (see [Cost](#cost)).
 | Greeting | "39 sleeps to Christmas" for the 60 days before the 25th, "Merry Christmas" from the 25th to the 29th, "2 days to 2027" on the 30th, "New Year's Eve" on the 31st, "Happy New Year" in January (English only) |
 | Focus glow | Candlelight (`#FFC46B`) |
 
+### Plough or broom
+
+Whoever applies the theme chooses who clears the snow, with one line in the theme's `config.json`:
+
+| `snow_clearer` | What clears the snow |
+|---|---|
+| `"plough"` (the default) | The small red plough, as above |
+| `"broom"` | A young wizard in round glasses, with untidy black hair, a scar on his forehead and a red and gold scarf, flying low over the snow on a racing broom after a small winged golden ball |
+
+The broom never touches the snow. He crosses in six seconds; the air he drags along lifts about three quarters
+of the snow into his wake as powder, which hangs for a moment and thins away, and the rest stays behind in
+ripples. A few clumps still hit the inside of the screen, and the tree sheds its snow as he passes. Because some
+snow is left, he comes back a little sooner than the plough would. From 30 December his broom trails gold
+sparks, and he crosses the midnight fireworks twice.
+
+<img src="docs/christmas-flyby.jpg" width="640" alt="The wizard on his broom crossing the screensaver, powder behind him">
+
+The flyer is unofficial fan art: see [Licence](#licence).
+
 ### The turn of the year
 
 The skin goes by the TV's own date:
@@ -41,9 +60,10 @@ The fireworks are silent: the skin makes no sound at all.
 
 ### Screensaver
 
-The launcher's Clock screensaver carries the skin too. Over the theme's pictures the snow collects along the
-bottom of the screen, edge to edge, with the tree (about a third of the screen's height) and the plough, both
-larger than on Home. The time and date keep to the upper left with the greeting under them, and the turn of the
+The launcher's Clock screensaver carries the skin too. Over the theme's pictures a heavier snowfall than Home's
+collects along the bottom of the screen, edge to edge, with the tree (about a third of the screen's height) and
+the plough or the broom, larger than on Home. With the heavier snow it is cleared about every two to three
+minutes. The time and date keep to the upper left with the greeting under them, and the turn of the
 year plays here as well, countdown and finale included.
 
 <img src="docs/christmas-screensaver.jpg" width="640" alt="The Clock screensaver with the Christmas snow scene">
@@ -66,7 +86,10 @@ snow does not fall, so there is no plough, tree, fireworks or screensaver scene 
    if you have no JDK.
 2. Push the theme: `TV_HOST=<tv ip> tools/theme.sh themes/christmas`
 
-3. For the screensaver, pick "Clock" in the TV's screensaver settings, or over ADB:
+3. To have the wizard on his broom clear the snow instead of the plough, change `"snow_clearer": "plough"` to
+   `"snow_clearer": "broom"` in `themes/christmas/config.json` and push the theme again. Changing it back and
+   pushing again brings the plough back; nothing needs rebuilding.
+4. For the screensaver, pick "Clock" in the TV's screensaver settings, or over ADB:
    `tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.ClockDream'`.
    Note the TV's current value first (`settings get secure screensaver_components`) so you can put it back.
 
@@ -77,30 +100,35 @@ stay until you run `tools/theme.sh --reset`. To get the skin with your own theme
 
 ## Cost
 
-- **Size:** the APK is 606,873 B (about 593 KB) as built for the test TV. The main repo's limit is 589,824 B,
-  so this branch is about 17 KB over it and fails that repo's size check. The main repo's README on this branch
+- **Size:** the APK is 609,729 B (about 595 KB) as built for the test TV. The main repo's limit is 589,824 B,
+  so this branch is about 20 KB over it and fails that repo's size check. The main repo's README on this branch
   still says "about 572 KB"; that figure describes the main repo's launcher, not this one.
 - **CPU:** the snow redraws about 30 times a second. On the Sony BRAVIA 4K UR3 the launcher used about 12% of
-  one of its four CPU cores while idle on Home, and about 10% while its screensaver was up, against about 0%
-  without the snow. On Home that stops when you leave Home; the screensaver keeps it up for as long as the TV
+  one of its four CPU cores while idle on Home, against about 0% without the snow. With the screensaver's
+  heavier snowfall up, the launcher used about 13% of one of four cores on the Sony BRAVIA 4K VH22. On Home that stops when you leave Home; the screensaver keeps it up for as long as the TV
   sits idle, which on a TV that never sleeps is all night.
-- **Memory:** 76 MB on Home and 60 MB with the screensaver up on that TV; the skin's first version, with snow
-  only, used 67 MB on Home.
+- **Memory:** 76 MB on Home on the UR3 and 66 MB with the screensaver up on the VH22; the skin's first version,
+  with snow only, used 67 MB on Home.
 
 ## Tested on
 
 - Sony BRAVIA 4K UR3, Android TV 10
 - Sony BRAVIA 4K VH22, Google TV 12
 
-Checked from screenshots taken over ADB on the UR3: Home with the candle, the bell, the snowflake, the falling
-snow, the collected snow and the tree; plough passes on Home and on the screensaver (about four minutes apart
-on the screensaver); and, with builds whose clock was shifted for the test, New Year's Eve, the countdown, the
-finale, the change to the New Year pictures and the skin ending on 7 January, on Home and on the screensaver.
-On the VH22 Home was checked, and the screensaver's scene once it had started.
+Checked from screenshots taken over ADB:
+
+- On the UR3: Home with the candle, the bell, the snowflake, the falling snow, the collected snow and the tree;
+  plough passes on Home and on the screensaver; the broom's flyby on Home; and, with builds whose clock was
+  shifted for the test, New Year's Eve, the countdown, the finale, the change to the New Year pictures and the
+  skin ending on 7 January, on Home and on the screensaver (with the plough).
+- On the VH22: Home, and the screensaver with the heavier snowfall and the broom: flybys in both directions,
+  about two and a quarter minutes apart.
 
 Not checked: the candle going out when the TV is offline; how the bell swing, the snowflake turn and the flame's
-flicker look in motion; the tree shedding its snow; the fireworks of 30 December and of the daytime of the 31st;
-the volleys of 1 to 6 January; a plough pass on the VH22's screensaver; and the screensaver's load over many hours.
+flicker look in motion; the tree shedding its snow, for the plough or the broom; the broom's gold sparks from
+30 December and his two passes through the midnight fireworks; the fireworks of 30 December and of the daytime
+of the 31st; the volleys of 1 to 6 January; the plough on the screensaver since its snowfall was made heavier;
+and the screensaver's load over many hours.
 
 ## What changed in the code
 
@@ -108,8 +136,9 @@ All in `launcher/app/src/main/java/com/gathin/tvhome/` unless a path is given.
 
 - New: `CandleDrawable`, `ChristmasIconDrawable`, `SnowfallView` (the snow, the plough, the thrown snow, the
   screensaver's ground), `SnowDrift` (the collected snow and when the plough is due), `ChristmasTree`,
-  `NewYear` (what happens on which date), `Fireworks`, `SparklerDrawable`
-- Changed: `Festival` (the `christmas` name, the greetings, the candle's height), `MainActivity` (applies the
+  `NewYear` (what happens on which date), `Fireworks`, `SparklerDrawable`; the broom's flyer, his wake and his
+  New Year passes are in `SnowfallView` and `SnowDrift`
+- Changed: `Festival` (the `christmas` name, the greetings, the candle's height, `snow_clearer`), `MainActivity` (applies the
   skin, starts and stops the snow, changes look when the date does), `DockDecoration` (the dock's snow and the
   tree), `Config` (leaves the `ny-` pictures out except in the skin's January), `ClockScene` (the screensaver's
   snow scene and greeting), `strings.xml` (English strings)
@@ -120,3 +149,7 @@ All in `launcher/app/src/main/java/com/gathin/tvhome/` unless a path is given.
 
 The code is MIT, like the main repo. The ten Commons photos keep their own licences (CC BY and CC BY-SA), listed
 in `themes/christmas/CREDITS.md`.
+
+The wizard on the broom is unofficial fan art, drawn from scratch in code for this skin. It is not affiliated
+with, endorsed by or licensed from the owners of the Harry Potter books and films, whose names and characters
+are their trademarks and copyright. It is off unless a theme asks for it.
