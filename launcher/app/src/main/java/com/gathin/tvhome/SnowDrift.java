@@ -7,7 +7,9 @@ package com.gathin.tvhome;
  * {@link #REPOSE} slumps to the next column (and off the two ends), and once the mean depth reaches
  * {@link #PLOUGH_DEPTH} the plough is {@link #due}. The plough's blade then travels the ledge: it scrapes each
  * column down to {@link #RESIDUE}, carries what it scraped as a heap in front of it and throws the heap off a
- * little at a time, which is what {@link #advance} returns for the view to draw as flying snow.
+ * little at a time, which is what {@link #advance} returns for the view to draw as flying snow. A ledge set to
+ * {@link #flyby} is cleared from the air instead: nothing scrapes it, and about three quarters of its snow is
+ * lifted away.
  *
  * <p>All lengths are dp and all amounts of snow are dp² of cross-section, so the model knows nothing about the
  * screen except where the ledge is ({@link #place}), which the dock's decoration writes and the snowfall reads;
