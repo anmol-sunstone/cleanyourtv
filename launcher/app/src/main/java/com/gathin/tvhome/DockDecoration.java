@@ -41,6 +41,14 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
     private final Path snowPath = new Path();
     /** The band the snow was shaped for; it is reshaped when the band moves. */
     private final RectF snowFor = new RectF();
+    /** The snow that really collects on the band while the snowfall runs; null draws the fixed drifts instead. */
+    private SnowDrift drift;
+    private final int[] inWindow = new int[2];
+    /** The Christmas tree standing in that drift, and how it is dressed today (looked up once an hour). */
+    private ChristmasTree tree;
+    private int treeDecorations;
+    private boolean treeLit, treeGifts;
+    private long treeHour = -1;
 
     /**
      * @param translucent the cinematic shelf's band: the artwork and the glow show through it.
@@ -74,6 +82,12 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         return this;
     }
 
+    /** The living drift the snowfall lands on and the plough clears; the fixed drifts are drawn without one. */
+    DockDecoration drift(SnowDrift d) {
+        drift = d;
+        return this;
+    }
+
     /** Concentric corners: the band's radius is the tiles' radius plus the band's padding around them. */
     static float radiusPx(float tileRadiusPx, float paddingPx) {
         return tileRadiusPx + paddingPx;
@@ -100,6 +114,7 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
 
     @Override
     public void onDraw(@NonNull Canvas c, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
+        if (drift != null) drift.ledgeShown = false;
         if (!bandVisible) return;
         boolean any = false;
         int cardWidth = 0;
@@ -161,7 +176,51 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
         }
         c.drawRoundRect(rect, radius, radius, band);
         c.drawRoundRect(rect, radius, radius, edge);
-        if (snow) drawSnow(c, radius);
+        if (snow && drift != null) drawDrift(c, parent, radius);
+        else if (snow) drawSnow(c, radius);
+    }
+
+    /**
+     * The collected snow, column by column, on the band's top edge between its rounded corners. The ledge's place
+     * in the window goes to the drift on every draw, so the snowfall above knows where its flakes come to rest.
+     */
+    private void drawDrift(Canvas c, RecyclerView parent, float radius) {
+        float l = rect.left + radius * 0.7f, r = rect.right - radius * 0.7f;
+        float y = rect.top + 0.8f * density;
+        if (r - l < 32f * density) return;
+        parent.getLocationInWindow(inWindow);
+        drift.place(inWindow[0] + l, inWindow[0] + r, inWindow[1] + y, radius * 0.7f, density);
+        if (drift.hasTree()) {
+            long hour = System.currentTimeMillis() / 3_600_000L;
+            if (tree == null) tree = new ChristmasTree();
+            if (hour != treeHour) {
+                treeHour = hour;
+                java.time.LocalDate today = NewYear.today();
+                treeDecorations = ChristmasTree.decorations(today);
+                treeLit = ChristmasTree.starLit(today);
+                treeGifts = NewYear.presents(today);
+            }
+            // behind the drift, which is drawn next and so lies in front of its trunk
+            tree.draw(c, l + drift.treeX() * density, y, density, drift.treeLoad(), treeDecorations, treeLit, treeGifts,
+                    (android.os.SystemClock.uptimeMillis() % 3_600_000L) / 1000f);
+        }
+        int n = drift.bins();
+        float bin = (r - l) / n;
+        snowPath.rewind();
+        snowPath.moveTo(l, y);
+        float px = l, py = y;
+        for (int i = 0; i < n; i++) {
+            float x = l + (i + 0.5f) * bin, top = y - drift.column(i) * density;
+            // a curve through the midpoints, so the columns read as one soft surface
+            snowPath.quadTo(px, py, (px + x) / 2f, (py + top) / 2f);
+            px = x;
+            py = top;
+        }
+        snowPath.quadTo(px, py, r, y);
+        snowPath.close();
+        snowFor.setEmpty();
+        snowPaint.setColor(0xF4FFFFFF);
+        c.drawPath(snowPath, snowPaint);
     }
 
     /**

@@ -3,8 +3,9 @@ package com.gathin.tvhome;
 import android.service.dreams.DreamService;
 
 /**
- * Screensaver: the launcher's thin clock and date on black, over a slow ambient glow (ClockScene).
- * No network, no images: cheap enough for a 1 GB TV.
+ * Screensaver: the launcher's thin clock and date on black, over a slow ambient glow (ClockScene); with
+ * clock_wallpaper, over Home's picture instead. No network. While the Christmas skin is on, ClockScene adds its
+ * snow scene, which redraws about 30 times a second for as long as the screensaver is up.
  */
 public class ClockDream extends DreamService {
 

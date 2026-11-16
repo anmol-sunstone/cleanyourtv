@@ -83,7 +83,7 @@ final class Festival {
             case HALLOWEEN:
                 return res.getString(R.string.festival_halloween_greeting);
             case CHRISTMAS:
-                return christmasGreeting(res, LocalDate.now());
+                return christmasGreeting(res, NewYear.today());
             default:
                 return "";
         }
@@ -123,6 +123,10 @@ final class Festival {
     }
 
     private static String christmasGreeting(Resources res, LocalDate today) {
+        // the last two days of the year look ahead (NewYear): "2 days to 2027", then "New Year's Eve"
+        int days = NewYear.daysToNewYear(today);
+        if (days == 1) return res.getString(R.string.festival_new_year_eve);
+        if (days > 1) return res.getString(R.string.festival_new_year_days, days, NewYear.year(today));
         int sleeps = sleepsToChristmas(today);
         if (sleeps < 0) return res.getString(R.string.festival_new_year_greeting);
         if (sleeps == 0) return res.getString(R.string.festival_christmas_greeting);

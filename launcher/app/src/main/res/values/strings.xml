@@ -23,6 +23,9 @@
     <string name="festival_christmas_sleeps" translatable="false">%1$d sleeps to Christmas</string>
     <string name="festival_christmas_one_sleep" translatable="false">1 sleep to Christmas</string>
     <string name="festival_new_year_greeting" translatable="false">Happy New Year</string>
+    <string name="festival_new_year_days" translatable="false">%1$d days to %2$d</string>
+    <string name="festival_new_year_eve" translatable="false">New Year\'s Eve</string>
+    <string name="festival_new_year_year" translatable="false">Happy New Year %1$d</string>
     <string name="ethernet">Ethernet</string>
     <string name="offline">Offline</string>
     <string name="not_available">Not available on this TV</string>

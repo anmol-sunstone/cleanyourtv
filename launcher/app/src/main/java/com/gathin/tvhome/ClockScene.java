@@ -30,6 +30,12 @@ import java.util.Set;
  * glow. Every minute the clock drifts to a new spot and the glow shifts colour, so nothing burns in; a
  * ClockRefresh keeps its TextClocks current where Android would not.
  * Shared by ClockDream (the system screensaver) and ClockActivity (Home left idle).
+ *
+ * <p>While the Christmas skin is on (and reduced_motion is off) a {@link SnowfallView} lies over the picture: snow
+ * falls and collects along the bottom of the screen, where the tree stands and the plough clears it, and the turn
+ * of the year brings the fireworks, the countdown and the finale, as on Home ({@link NewYear}). The skin's
+ * greeting stands under the date and the clock keeps to the upper left. After the finale the pictures are read
+ * again, so the New Year ones take over, and a screensaver still up when the skin ends drops the scene.
  */
 final class ClockScene {
 
@@ -54,6 +60,8 @@ final class ClockScene {
     private File wallpaperFile;
     private int wallpaperShade;
     private Resources wallpaperRes;
+    /** wallpaper_true_color: the picture in 32-bit colour, as Home decodes it then, instead of RGB_565. */
+    private boolean trueColor;
     /** One number per decode request: a result whose number is no longer the current one is dropped. Main thread only. */
     private int wallpaperGeneration;
     /** clock_wallpaper with a collection: the pictures, how long each lasts, and how the next one is picked. */
@@ -63,12 +71,24 @@ final class ClockScene {
     private String order;
     private Map<String, Set<String>> moods;
     private String latitude, longitude;
+    /**
+     * The Christmas skin's scene over the picture: snow falling and collecting along the bottom of the screen,
+     * the tree, the plough and at the turn of the year the fireworks. Null without the skin.
+     */
+    private SnowfallView snow;
+    /** The skin, and its greeting under the date: the sleeps to Christmas, the days to the new year, the new year. */
+    private Festival festival;
+    private android.widget.TextView greeting;
+    /** How much larger than on Home's dock the scene is drawn, and how many flakes fall. */
+    private static final float SCENE_SCALE = 1.8f;
+    private static final int FLAKES = 70;
 
     private final Runnable tick = new Runnable() {
         @Override
         public void run() {
             moveClock();
             shiftGlow();
+            followSkin();
             advanceWallpaper();
             handler.postDelayed(this, MOVE_MS);
         }
@@ -98,6 +118,7 @@ final class ClockScene {
         handler.postDelayed(tick, MOVE_MS);
         clockRefresh.start();
         if (wallpaperFile != null && !wallpaperShown) loadWallpaper();
+        if (snow != null) snow.fall(FLAKES);
     }
 
     void stop() {
@@ -105,13 +126,14 @@ final class ClockScene {
         clockRefresh.stop();
         content.animate().cancel();
         wallpaperGeneration++;   // a decode still running must not attach its picture to a stopped scene
+        if (snow != null) snow.stop();
     }
 
     /**
      * clock_wallpaper: put the picture Home is showing behind the clock, darkened by clock_wallpaper_dim, in
      * place of the glow, and carry a collection's rotation on while the screensaver is up. Decoded off the main
-     * thread at screen size in RGB_565 (4 MB at 1080p), like Home's own; until then, or if it cannot be read,
-     * the glow stays.
+     * thread at screen size in RGB_565 (4 MB at 1080p), or in 32-bit colour with wallpaper_true_color, like Home's
+     * own; until then, or if it cannot be read, the glow stays.
      * Call before start(), which starts the decode (again after a stop() that dropped an unfinished one).
      */
     void useHomeWallpaper(Context ctx) {
@@ -120,6 +142,33 @@ final class ClockScene {
             cfg = Config.load(ctx);
         } catch (RuntimeException e) {
             return;
+        }
+        if (snow == null && !cfg.reducedMotion && cfg.festival.isChristmas()
+                && cfg.festival.active(NewYear.today()) && ambient.getParent() instanceof android.view.ViewGroup) {
+            android.view.ViewGroup frame = (android.view.ViewGroup) ambient.getParent();
+            snow = new SnowfallView(ctx);
+            snow.ground(SCENE_SCALE);
+            festival = cfg.festival;
+            if (content instanceof android.widget.LinearLayout) {
+                greeting = new android.widget.TextView(ctx);
+                greeting.setTextColor(0xD9FFE9A8);
+                greeting.setTextSize(20f);
+                greeting.setShadowLayer(8f, 0f, 2f, 0xA0000000);
+                greeting.setPadding(Math.round(6f * ctx.getResources().getDisplayMetrics().density),
+                        Math.round(10f * ctx.getResources().getDisplayMetrics().density), 0, 0);
+                greeting.setText(festival.greetingText(ctx.getResources()));
+                ((android.widget.LinearLayout) content).addView(greeting);
+            }
+            // after the finale the pictures are the New Year's: read the collection again and show one
+            snow.whenFinaleEnds(() -> {
+                useHomeWallpaper(ctx);
+                if (wallpaperFile != null) {
+                    wallpaperShown = false;
+                    loadWallpaper();
+                }
+            });
+            frame.addView(snow, frame.indexOfChild(ambient) + 1, new android.view.ViewGroup.LayoutParams(
+                    android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.MATCH_PARENT));
         }
         if (!cfg.clockWallpaper) {
             // clock_glow false: plain black behind the clock (OLED); the clock itself still moves every minute.
@@ -151,17 +200,19 @@ final class ClockScene {
         }
         wallpaperShade = (cfg.clockWallpaperDim * 255 / 100) << 24;
         wallpaperRes = ctx.getResources();
+        trueColor = cfg.wallpaperTrueColor;
     }
 
     private void loadWallpaper() {
         File file = wallpaperFile;
         int shade = wallpaperShade;
         Resources res = wallpaperRes;
+        boolean full = trueColor;
         DisplayMetrics dm = res.getDisplayMetrics();
         int w = dm.widthPixels, h = dm.heightPixels;
         int generation = ++wallpaperGeneration;
         new Thread(() -> {
-            Bitmap bmp = decode(file, w, h);
+            Bitmap bmp = decode(file, w, h, full);
             if (bmp == null) return;
             handler.post(() -> {
                 if (generation != wallpaperGeneration || wallpaperShown) {
@@ -179,7 +230,7 @@ final class ClockScene {
     }
 
     /** WallpaperPlayer's decode: sampled and scaled down to cover the screen, never bigger than 4K. */
-    private static Bitmap decode(File file, int screenW, int screenH) {
+    private static Bitmap decode(File file, int screenW, int screenH, boolean trueColor) {
         try {
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inJustDecodeBounds = true;
@@ -196,7 +247,7 @@ final class ClockScene {
                 options.inDensity = scale[0];
                 options.inTargetDensity = scale[1];
             }
-            options.inPreferredConfig = Bitmap.Config.RGB_565;
+            options.inPreferredConfig = trueColor ? Bitmap.Config.ARGB_8888 : Bitmap.Config.RGB_565;
             return BitmapFactory.decodeFile(file.getPath(), options);
         } catch (Exception | OutOfMemoryError failure) {
             return null;
@@ -227,6 +278,22 @@ final class ClockScene {
                 WallpaperMood.timeOfDay(now.getHour() * 60 + now.getMinute(), sun[0], sun[1]));
     }
 
+    /**
+     * Once a minute: the greeting follows the date, and a screensaver still up when the skin's last day is over
+     * loses its snow scene, as Home does.
+     */
+    private void followSkin() {
+        if (snow == null) return;
+        if (festival.active(NewYear.today())) {
+            if (greeting != null) greeting.setText(festival.greetingText(greeting.getResources()));
+            return;
+        }
+        snow.stop();
+        ((android.view.ViewGroup) snow.getParent()).removeView(snow);
+        snow = null;
+        if (greeting != null) greeting.setVisibility(View.GONE);
+    }
+
     private void moveClock() {
         content.animate().alpha(0f).setDuration(900).withLayer().withEndAction(() -> {
             placeClock();
@@ -239,8 +306,9 @@ final class ClockScene {
         View parent = (View) content.getParent();
         int maxX = Math.max(0, parent.getWidth() - content.getWidth());
         int maxY = Math.max(0, parent.getHeight() - content.getHeight());
-        float x = maxX * (0.1f + 0.8f * random.nextFloat());
-        float y = maxY * (0.1f + 0.8f * random.nextFloat());
+        // with the snow scene the clock keeps to the upper left, clear of the tree, the snow on the ground and the New Year's countdown
+        float x = maxX * (snow != null ? 0.06f + 0.4f * random.nextFloat() : 0.1f + 0.8f * random.nextFloat());
+        float y = maxY * (snow != null ? 0.06f + 0.2f * random.nextFloat() : 0.1f + 0.8f * random.nextFloat());
         content.setX(x);
         content.setY(y);
         if (parent.getWidth() > 0 && parent.getHeight() > 0) {

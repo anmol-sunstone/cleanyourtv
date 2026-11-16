@@ -272,6 +272,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private FestiveLamp lamp;
     /** The Christmas skin's snowfall over Home, falling for as long as Home is on screen. */
     private SnowfallView snow;
+    /** The snow that collects on the dock under that snowfall, and its plough. */
+    private final SnowDrift snowDrift = new SnowDrift();
+    /** Which part of the Christmas skin's calendar Home was built for (NewYear.phase): a new one rebuilds Home. */
+    private int skinPhase;
     private BellDrawable bell;
     private MarigoldDrawable marigold;
     private int greetingColor;
@@ -487,6 +491,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         focusOvershoot = cfg.focusOvershoot;
         festival = cfg.festival;
         festive = festival.active(LocalDate.now());
+        skinPhase = NewYear.phase(NewYear.today());
         liveTvPkg = cfg.liveTvPackage;
         homeIgnoreChannelKeys = cfg.homeIgnoreChannelKeys;
         idleClockMs = cfg.homeIdleClockMinutes * MINUTE_MS;
@@ -691,7 +696,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             }
         });
         if (dockRow) grid.addItemDecoration(new DockDecoration(COLUMNS, density, cinematic, cfg.alwaysShowNames, cfg.dockOpacity, cfg.dockGlass, cfg.dockEvenPadding, cfg.dockBand,
-                singleRow, cfg.dockBandAll).snow(festive && festival.isChristmas()));
+                singleRow, cfg.dockBandAll).snow(festive && festival.isChristmas())
+                .drift(festive && festival.isChristmas() && !reducedMotion ? snowDrift : null));
         if (cfg.fadeRows) TopFade.attach(grid, 48 * density);
         // Reduced motion: the tiles are simply there, with no entrance (reloadApps skips it there too).
         if (animations && !reducedMotion) {
@@ -1094,7 +1100,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         super.onResume();
         resumed = true;
         // A festival that started or ended while Home was in the background: rebuild with or without it.
-        if (festive != festival.active(LocalDate.now())) {
+        if (festive != festival.active(LocalDate.now())
+                || (festive && festival.isChristmas() && skinPhase != NewYear.phase(NewYear.today()))) {
             recreate();
             return;
         }
@@ -1146,6 +1153,9 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (festive && festival.isChristmas() && !reducedMotion) {
             if (snow == null) {
                 snow = new SnowfallView(this);
+                snow.collectOn(snowDrift, () -> grid.invalidate());
+                // midnight passed with Home on screen: after the finale, Home takes its New Year look
+                snow.whenFinaleEnds(this::recreate);
                 root.addView(snow, new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
             }
@@ -3110,13 +3120,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (festival.isChristmas()) {
             ChristmasIconDrawable jingle = new ChristmasIconDrawable(density, ChristmasIconDrawable.BELL);
             ChristmasIconDrawable flake = new ChristmasIconDrawable(density, ChristmasIconDrawable.SNOWFLAKE);
-            CandleDrawable candle = new CandleDrawable(density, Festival.candleLeft(LocalDate.now()));
+            // in the skin's New Year days a sparkler takes the Advent candle's place
+            boolean newYear = NewYear.phase(NewYear.today()) == NewYear.NEW_YEAR;
+            SparklerDrawable sparkler = newYear ? new SparklerDrawable(density) : null;
+            CandleDrawable candle = newYear ? null : new CandleDrawable(density, Festival.candleLeft(NewYear.today()));
             jingle.setReducedMotion(reducedMotion);
             flake.setReducedMotion(reducedMotion);
-            candle.setReducedMotion(reducedMotion);
-            lamp = candle;
+            FestiveLamp light = sparkler != null ? sparkler : candle;
+            light.setReducedMotion(reducedMotion);
+            lamp = light;
             setFestiveIcon(inputs, jingle);
-            setFestiveIcon(btnWifi, candle);
+            setFestiveIcon(btnWifi, sparkler != null ? sparkler : candle);
             setFestiveIcon(settings, flake);
             addFocusAction(inputs, jingle::nudge);
             addFocusAction(settings, flake::nudge);
