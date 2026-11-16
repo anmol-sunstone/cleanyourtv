@@ -122,12 +122,12 @@ Checked from screenshots taken over ADB:
   shifted for the test, New Year's Eve, the countdown, the finale, the change to the New Year pictures and the
   skin ending on 7 January, on Home and on the screensaver (with the plough).
 - On the VH22: Home, and the screensaver with the heavier snowfall and the broom: flybys in both directions,
-  about two and a quarter minutes apart.
+  about two and a quarter minutes apart; and, with a build whose clock was shifted, the broom's gold sparks on
+  New Year's Eve and his two passes through the finale's fireworks.
 
 Not checked: the candle going out when the TV is offline; how the bell swing, the snowflake turn and the flame's
-flicker look in motion; the tree shedding its snow, for the plough or the broom; the broom's gold sparks from
-30 December and his two passes through the midnight fireworks; the fireworks of 30 December and of the daytime
-of the 31st; the volleys of 1 to 6 January; the plough on the screensaver since its snowfall was made heavier;
+flicker look in motion; the tree shedding its snow, for the plough or the broom; the broom's New Year parts on
+Home; the fireworks of 30 December and of the daytime of the 31st; the volleys of 1 to 6 January; the plough on the screensaver since its snowfall was made heavier;
 and the screensaver's load over many hours.
 
 ## What changed in the code
