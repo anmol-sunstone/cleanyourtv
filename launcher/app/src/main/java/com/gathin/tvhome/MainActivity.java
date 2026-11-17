@@ -1154,6 +1154,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             if (snow == null) {
                 snow = new SnowfallView(this);
                 snowDrift.flyby(festival.broom);
+                snow.santa(festival.santa);
                 snow.collectOn(snowDrift, () -> grid.invalidate());
                 // midnight passed with Home on screen: after the finale, Home takes its New Year look
                 snow.whenFinaleEnds(this::recreate);

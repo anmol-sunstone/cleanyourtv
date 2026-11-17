@@ -1,4 +1,4 @@
-# Cozy Christmas: a candle, a bell, snow, a tree, and a plough or a broom to clear it
+# Cozy Christmas: a candle, a bell, snow, a tree, and a plough, Santa or a broom to clear it
 
 This branch (`christmas-skin`) is a fork of [CleanYourTV](https://github.com/Gathin23/cleanyourtv) that adds a
 Christmas skin to its launcher and a `christmas` theme that turns the skin on: seven Christmas pictures and
@@ -24,13 +24,14 @@ because this build is over its APK size limit (see [Cost](#cost)).
 | Greeting | "39 sleeps to Christmas" for the 60 days before the 25th, "Merry Christmas" from the 25th to the 29th, "2 days to 2027" on the 30th, "New Year's Eve" on the 31st, "Happy New Year" in January (English only) |
 | Focus glow | Candlelight (`#FFC46B`) |
 
-### Plough or broom
+### Plough, Santa or broom
 
 Whoever applies the theme chooses who clears the snow, with one line in the theme's `config.json`:
 
 | `snow_clearer` | What clears the snow |
 |---|---|
 | `"plough"` (the default) | The small red plough, as above |
+| `"santa"` | The same plough with Santa at the wheel, his sack in the back (presents sticking out until Christmas Eve, empty from the 25th), antlers on the bonnet and a red nose for a headlight. It ploughs exactly as the plain one does |
 | `"broom"` | A young wizard in round glasses, with untidy black hair, a scar on his forehead and a red and gold scarf, flying low over the snow on a racing broom after a small winged golden ball |
 
 The broom never touches the snow. He crosses in six seconds; the air he drags along lifts about three quarters
@@ -86,9 +87,10 @@ snow does not fall, so there is no plough, tree, fireworks or screensaver scene 
    if you have no JDK.
 2. Push the theme: `TV_HOST=<tv ip> tools/theme.sh themes/christmas`
 
-3. To have the wizard on his broom clear the snow instead of the plough, change `"snow_clearer": "plough"` to
-   `"snow_clearer": "broom"` in `themes/christmas/config.json` and push the theme again. Changing it back and
-   pushing again brings the plough back; nothing needs rebuilding.
+3. To put Santa at the plough's wheel, or to have the wizard on his broom clear the snow instead, change
+   `"snow_clearer": "plough"` to `"snow_clearer": "santa"` or `"snow_clearer": "broom"` in
+   `themes/christmas/config.json` and push the theme again. Changing it back and pushing again brings the plain
+   plough back; nothing needs rebuilding.
 4. For the screensaver, pick "Clock" in the TV's screensaver settings, or over ADB:
    `tools/tv.py 'settings put secure screensaver_components com.gathin.tvhome/.ClockDream'`.
    Note the TV's current value first (`settings get secure screensaver_components`) so you can put it back.
@@ -100,8 +102,8 @@ stay until you run `tools/theme.sh --reset`. To get the skin with your own theme
 
 ## Cost
 
-- **Size:** the APK is 609,729 B (about 595 KB) as built for the test TV. The main repo's limit is 589,824 B,
-  so this branch is about 20 KB over it and fails that repo's size check. The main repo's README on this branch
+- **Size:** the APK is 610,481 B (about 596 KB) as built for the test TV. The main repo's limit is 589,824 B,
+  so this branch is about 21 KB over it and fails that repo's size check. The main repo's README on this branch
   still says "about 572 KB"; that figure describes the main repo's launcher, not this one.
 - **CPU:** the snow redraws about 30 times a second. On the Sony BRAVIA 4K UR3 the launcher used about 12% of
   one of its four CPU cores while idle on Home, against about 0% without the snow. With the screensaver's
@@ -118,7 +120,8 @@ stay until you run `tools/theme.sh --reset`. To get the skin with your own theme
 Checked from screenshots taken over ADB:
 
 - On the UR3: Home with the candle, the bell, the snowflake, the falling snow, the collected snow and the tree;
-  plough passes on Home and on the screensaver; the broom's flyby on Home; and, with builds whose clock was
+  plough passes on Home and on the screensaver; Santa's plough on the screensaver, one pass from the left,
+  with its heavier snowfall; the broom's flyby on Home; and, with builds whose clock was
   shifted for the test, New Year's Eve, the countdown, the finale, the change to the New Year pictures and the
   skin ending on 7 January, on Home and on the screensaver (with the plough).
 - On the VH22: Home, and the screensaver with the heavier snowfall and the broom: flybys in both directions,
@@ -127,7 +130,7 @@ Checked from screenshots taken over ADB:
 
 Not checked: the candle going out when the TV is offline; how the bell swing, the snowflake turn and the flame's
 flicker look in motion; the tree shedding its snow, for the plough or the broom; the broom's New Year parts on
-Home; the fireworks of 30 December and of the daytime of the 31st; the volleys of 1 to 6 January; the plough on the screensaver since its snowfall was made heavier;
+Home; the fireworks of 30 December and of the daytime of the 31st; the volleys of 1 to 6 January; Santa's plough on Home, driving from the right, and with its sack empty from Christmas Day;
 and the screensaver's load over many hours.
 
 ## What changed in the code
@@ -137,7 +140,7 @@ All in `launcher/app/src/main/java/com/gathin/tvhome/` unless a path is given.
 - New: `CandleDrawable`, `ChristmasIconDrawable`, `SnowfallView` (the snow, the plough, the thrown snow, the
   screensaver's ground), `SnowDrift` (the collected snow and when the plough is due), `ChristmasTree`,
   `NewYear` (what happens on which date), `Fireworks`, `SparklerDrawable`; the broom's flyer, his wake and his
-  New Year passes are in `SnowfallView` and `SnowDrift`
+  New Year passes are in `SnowfallView` and `SnowDrift`, and Santa, his sack and the antlers in `SnowfallView`
 - Changed: `Festival` (the `christmas` name, the greetings, the candle's height, `snow_clearer`), `MainActivity` (applies the
   skin, starts and stops the snow, changes look when the date does), `DockDecoration` (the dock's snow and the
   tree), `Config` (leaves the `ny-` pictures out except in the skin's January), `ClockScene` (the screensaver's

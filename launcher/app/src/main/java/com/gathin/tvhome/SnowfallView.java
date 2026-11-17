@@ -22,7 +22,7 @@ import java.util.Random;
  * drift is deep enough a little red plough drives along the dock, alternately from the left and from the right.
  * Its blade scrapes the drift, the snow it gathers rides in front of it and is thrown off in arcs: some lands
  * further along and is ploughed again, some falls past the dock, and a few clumps fly at the viewer, hit the
- * inside of the screen and slide down it while they melt. A drift set to {@link SnowDrift#flyby} is cleared by a
+ * inside of the screen and slide down it while they melt. With {@link #santa} Santa drives it. A drift set to {@link SnowDrift#flyby} is cleared by a
  * wizard on a broomstick instead: he skims over it in six seconds, his wake lifts most of the snow as powder
  * that thins away, and at the New Year he trails sparks and crosses the finale's fireworks.
  *
@@ -99,6 +99,9 @@ public final class SnowfallView extends View {
 
     private final Path blade = new Path(), beam = new Path(), heap = new Path();
     private final Path cape = new Path(), hair = new Path(), bristles = new Path(), torso = new Path();
+    private final Path hat = new Path();
+    /** Santa drives the plough. */
+    private boolean santa;
     /** The flyer's extra pass through the finale's fireworks: 0 to 1 across the screen, negative when there is none. */
     private float skyPass = -1f;
     private int skyDir = 1, skyPasses;
@@ -144,6 +147,15 @@ public final class SnowfallView extends View {
         beam.lineTo(48f, -25f);
         beam.lineTo(48f, 0f);
         beam.close();
+        // Santa's hat, seen through the cab's window: it tips back, as the wind would have it.
+        hat.moveTo(-36.9f, -21.9f);
+        hat.quadTo(-36.2f, -24.6f, -33.4f, -24.3f);
+        hat.lineTo(-32.3f, -22.1f);
+        hat.close();
+        hat.moveTo(-36.9f, -21.9f);
+        hat.quadTo(-38.6f, -24.4f, -39.2f, -21.6f);
+        hat.lineTo(-37.6f, -21.2f);
+        hat.close();
         // The flyer is drawn in dp too, facing +x, with the middle of his broomstick at the origin.
         hair.moveTo(4.5f, -29f);
         hair.lineTo(2.6f, -34f);
@@ -190,6 +202,11 @@ public final class SnowfallView extends View {
      * near its right end, and the view draws both itself. With {@code broom} a flyer clears it, not the plough. Everything in the scene is {@code scale} times its size
      * on Home; the plough takes about ten seconds to cross. Call before {@link #fall}.
      */
+    /** Puts Santa at the plough's wheel, his sack in the back and antlers on the bonnet. */
+    void santa(boolean on) {
+        santa = on;
+    }
+
     void ground(float scale, boolean broom) {
         unit = density * scale;
         ground = true;
@@ -800,8 +817,12 @@ public final class SnowfallView extends View {
         c.drawRoundRect(-27f, -18f, -11f, -9f, 2.5f, 2.5f, ink);
         ink.setColor(0xFFFFD98A);
         c.drawRoundRect(-40f, -25f, -29f, -17f, 1.5f, 1.5f, ink);
-        ink.setColor(0xFFFFF1C4);
-        c.drawCircle(-11.5f, -13.5f, 1.6f, ink);
+        if (santa) {
+            drawSanta(c);
+        } else {
+            ink.setColor(0xFFFFF1C4);
+            c.drawCircle(-11.5f, -13.5f, 1.6f, ink);
+        }
         ink.setColor(0xF4FFFFFF);
         c.drawRoundRect(-60.5f, -24f, -43.5f, -21.5f, 1.2f, 1.2f, ink);
         c.drawRoundRect(-43.5f, -29.6f, -25.5f, -27.4f, 1.1f, 1.1f, ink);
@@ -832,6 +853,64 @@ public final class SnowfallView extends View {
             c.drawPath(heap, ink);
         }
         c.restore();
+    }
+
+    /**
+     * Santa's plough: Santa in profile at the wheel, his sack in the back (full of presents until Christmas
+     * Eve, slumped and empty once they lie under the tree), a pair of antlers on the bonnet and a red nose for
+     * a headlight. Drawn in the plough's own dp, after its body and before the snow on its roofs.
+     */
+    private void drawSanta(Canvas c) {
+        java.time.LocalDate today = NewYear.today();
+        boolean full = NewYear.phase(today) == NewYear.CHRISTMAS && !NewYear.presents(today);
+        // the sack, and what sticks out of it
+        if (full) {
+            ink.setColor(0xFF2E8B57);
+            c.drawRect(-57.5f, -34.5f, -53f, -30f, ink);
+            ink.setColor(0xFF3F7FD0);
+            c.drawRect(-50f, -36f, -46.2f, -31f, ink);
+            line.setColor(0xFFFFD75E);
+            line.setStrokeWidth(0.9f);
+            c.drawLine(-55.2f, -34.5f, -55.2f, -30f, line);
+            c.drawLine(-50f, -33.6f, -46.2f, -33.6f, line);
+            ink.setColor(0xFF8A5A2B);
+            c.drawRoundRect(-59f, -32f, -45f, -21f, 5f, 5f, ink);
+            ink.setColor(0xFF6E4520);
+            c.drawRoundRect(-54.5f, -33.4f, -49.5f, -31.4f, 1f, 1f, ink);
+        } else {
+            ink.setColor(0xFF8A5A2B);
+            c.drawRoundRect(-58.5f, -26.5f, -47f, -21f, 2.4f, 2.4f, ink);
+        }
+        // Santa, behind the glass
+        c.save();
+        c.clipRect(-40f, -25f, -29f, -17f);
+        ink.setColor(0xFFB3211D);
+        c.drawCircle(-35.6f, -15.2f, 3.9f, ink);
+        ink.setColor(0xFFFFFFFF);
+        c.drawCircle(-33.5f, -18.5f, 2.3f, ink);
+        ink.setColor(0xFFF2C6A0);
+        c.drawCircle(-34.5f, -20.6f, 1.9f, ink);
+        ink.setColor(0xFFE58A7A);
+        c.drawCircle(-32.7f, -20.3f, 0.55f, ink);
+        ink.setColor(0xFF2B2B33);
+        c.drawCircle(-33.6f, -21f, 0.32f, ink);
+        ink.setColor(0xFFC8322B);
+        c.drawPath(hat, ink);
+        ink.setColor(0xFFFFFFFF);
+        c.drawRoundRect(-37.2f, -22.5f, -32f, -21.3f, 0.6f, 0.6f, ink);
+        c.drawCircle(-38.9f, -21.3f, 0.9f, ink);
+        c.restore();
+        // antlers on the bonnet, and the nose
+        line.setColor(0xFF8A5A2B);
+        line.setStrokeWidth(1.1f);
+        c.drawLine(-16f, -18f, -14.5f, -24f, line);
+        c.drawLine(-15.3f, -20.6f, -12.6f, -22.2f, line);
+        c.drawLine(-15.6f, -19.6f, -18.4f, -22f, line);
+        c.drawLine(-14.8f, -22.6f, -16.8f, -24.6f, line);
+        ink.setColor(0x50FF3B30);
+        c.drawCircle(-11.5f, -13.5f, 3.4f, ink);
+        ink.setColor(0xFFFF3B30);
+        c.drawCircle(-11.5f, -13.5f, 1.8f, ink);
     }
 
     private void wheel(Canvas c, float x, float turn) {

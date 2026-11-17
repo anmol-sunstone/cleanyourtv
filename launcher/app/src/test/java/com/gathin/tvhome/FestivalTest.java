@@ -95,4 +95,18 @@ public class FestivalTest {
         assertFalse(f.isHalloween());
         assertEquals(Festival.CANDLELIGHT, f.accentColor());
     }
+
+    @Test
+    public void snowClearerNamesTheBroomOrSantaAndAnythingElseIsThePlough() {
+        Festival f = Festival.parse("christmas", "", "", "");
+        assertFalse(f.broom || f.santa);
+        assertSame(f, f.clearedBy("plough"));
+        assertSame(f, f.clearedBy(null));
+        assertTrue(f.clearedBy(" Santa ").santa);
+        assertFalse(f.clearedBy("santa").broom);
+        assertTrue(f.clearedBy("broom").broom);
+        assertFalse(f.clearedBy("broom").santa);
+        assertFalse(f.clearedBy("santa").clearedBy("sleigh").santa);
+        assertSame(Festival.NONE, Festival.NONE.clearedBy("santa"));
+    }
 }

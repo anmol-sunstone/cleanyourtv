@@ -45,23 +45,31 @@ final class Festival {
      * (a theme's {@code snow_clearer} set to {@code broom}).
      */
     final boolean broom;
+    /** The plough is driven by Santa, with his sack in the back ({@code snow_clearer} set to {@code santa}). */
+    final boolean santa;
 
     private Festival(String name, LocalDate until, String greeting, int accent) {
-        this(name, until, greeting, accent, false);
+        this(name, until, greeting, accent, false, false);
     }
 
-    private Festival(String name, LocalDate until, String greeting, int accent, boolean broom) {
+    private Festival(String name, LocalDate until, String greeting, int accent, boolean broom, boolean santa) {
         this.name = name;
         this.until = until;
         this.greeting = greeting;
         this.accent = accent;
         this.broom = broom;
+        this.santa = santa;
     }
 
-    /** This skin with its snow cleared the way a theme's {@code snow_clearer} names: {@code broom}, or the plough. */
+    /**
+     * This skin with its snow cleared the way a theme's {@code snow_clearer} names: {@code broom}, {@code santa}
+     * (the plough with Santa at the wheel), or the plough.
+     */
     Festival clearedBy(String clearer) {
-        boolean flies = clearer != null && "broom".equals(clearer.trim().toLowerCase(Locale.ROOT));
-        return flies == broom || name.isEmpty() ? this : new Festival(name, until, greeting, accent, flies);
+        String who = clearer == null ? "" : clearer.trim().toLowerCase(Locale.ROOT);
+        boolean flies = "broom".equals(who), drives = "santa".equals(who);
+        return (flies == broom && drives == santa) || name.isEmpty() ? this
+                : new Festival(name, until, greeting, accent, flies, drives);
     }
 
     /**

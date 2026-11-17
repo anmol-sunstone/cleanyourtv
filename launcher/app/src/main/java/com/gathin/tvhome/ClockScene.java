@@ -148,6 +148,7 @@ final class ClockScene {
             android.view.ViewGroup frame = (android.view.ViewGroup) ambient.getParent();
             snow = new SnowfallView(ctx);
             snow.ground(SCENE_SCALE, cfg.festival.broom);
+            snow.santa(cfg.festival.santa);
             festival = cfg.festival;
             if (content instanceof android.widget.LinearLayout) {
                 greeting = new android.widget.TextView(ctx);
